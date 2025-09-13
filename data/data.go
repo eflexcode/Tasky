@@ -10,7 +10,8 @@ type Task struct {
 	ID          int
 	Title       string
 	Description string
-	SubTask     []SubTask
+	SubTasks    []SubTask
+	Done        bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -86,7 +87,7 @@ func (data *DataRepository) GetAllTask() ([]Task, error) {
 			return nil, err
 		}
 
-		querySubTask := `SELECT * FROM subtask WHERE TaskID = ?`
+		querySubTask := `SELECT * FROM subtasks WHERE TaskID = ?`
 
 		rowSubTask, err := data.DB.Query(querySubTask, item.ID)
 
@@ -94,16 +95,17 @@ func (data *DataRepository) GetAllTask() ([]Task, error) {
 			return nil, err
 		}
 
-		subItem := SubTask{}
+		for rowSubTask.Next() {
+			subItem := SubTask{}
+			err = rowSubTask.Scan(&subItem.ID, &subItem.TaskID, &subItem.Title, &subItem.Done, &subItem.CreatedAt, &subItem.UpdatedAt)
 
-		err = rowSubTask.Scan(&subItem.ID, &subItem.TaskID, &subItem.Title, &subItem.Done, &subItem.CreatedAt, &subItem.UpdatedAt)
+			if err != nil {
+				return nil, err
+			}
 
-		if err != nil {
-			return nil, err
+			subItems = append(subItems, subItem)
+			item.SubTasks = subItems
 		}
-
-		subItems = append(subItems, subItem)
-		item.SubTask = subItems
 
 		tasks = append(tasks, item)
 	}
@@ -111,6 +113,97 @@ func (data *DataRepository) GetAllTask() ([]Task, error) {
 	return tasks, nil
 }
 
-func(data *DataRepository) DeleteTask(id int64) error{
+func (data *DataRepository) GetTaskById(id int64) (*Task, error) {
 
+	query := `SELECT * FROM tasks WHERE id = ?`
+
+	result, err := data.DB.Query(query, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	task := Task{}
+
+	err = result.Scan(&task.ID, &task.Title, &task.Description, &task.UpdatedAt, &task.CreatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	querySubTask := `SELECT * FROM subtasks WHERE TaskID = ?`
+
+	rowSubTask, err := data.DB.Query(querySubTask, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var subTasks []SubTask
+
+	for rowSubTask.Next() {
+
+		subTask := SubTask{}
+
+		err = rowSubTask.Scan(&subTask.ID, &subTask.TaskID, &subTask.Title, &subTask.Done, &subTask.CreatedAt, &subTask.UpdatedAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		subTasks = append(subTasks, subTask)
+
+	}
+
+	task.SubTasks = subTasks
+
+	return &task, nil
+
+}
+
+func (data *DataRepository) DeleteTask(id int64) error {
+
+	query := `DELETE FROM tasks WHERE id = ?`
+	_, err := data.DB.Exec(query, id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (data *DataRepository) AddSubTask(taskId int64, title string) (*Task, error) {
+
+	query := `INSERT INTO subtasks(TaskID,title,done,created_at,updated_at) VALUES($1,$2,$3,$4,$5)`
+	createdAt := time.Now()
+
+	_, err := data.DB.Exec(query, taskId, title, false, createdAt, createdAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	task, err := data.GetTaskById(taskId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return task, nil
+
+}
+
+func (data *DataRepository) UpdateSubTask(subTaskId int64) {}
+
+func (data *DataRepository) DeleteSubTask(id int64) error {
+
+	query := `DELETE FROM subtasks WHERE id = ?`
+	_, err := data.DB.Exec(query, id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
