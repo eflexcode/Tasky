@@ -35,11 +35,11 @@ func NewDataRepository(DB *sql.DB) *DataRepository {
 
 func (data *DataRepository) InsertTask(task *Task) error {
 
-	query := `INSERT INTO tasks(title,description,created_at,updated_at) VALUES($1,$2,$3,$4)`
+	query := `INSERT INTO tasks(title,description,done,created_at,updated_at) VALUES($1,$2,$3,$4,$5)`
 
 	createdAt := time.Now()
 
-	_, err := data.DB.Exec(query, &task.Title, &task.Description, createdAt, createdAt)
+	_, err := data.DB.Exec(query, &task.Title, &task.Description, false, createdAt, createdAt)
 
 	if err != nil {
 		return err
@@ -49,11 +49,11 @@ func (data *DataRepository) InsertTask(task *Task) error {
 
 func (data *DataRepository) UpdateTask(task *Task) error {
 
-	query := `UPDATE tasks SET title = ?,description = ?,updated_at = ? WHERE id = ?`
+	query := `UPDATE tasks SET title = ?,description = ?, done = ?,updated_at = ? WHERE id = ?`
 
 	updatedAt := time.Now()
 
-	_, err := data.DB.Exec(query, &task.Title, &task.Description, updatedAt, &task.ID)
+	_, err := data.DB.Exec(query, &task.Title, &task.Description, &task.Done, updatedAt, &task.ID)
 
 	if err != nil {
 		return err
@@ -81,7 +81,7 @@ func (data *DataRepository) GetAllTask() ([]Task, error) {
 		item := Task{}
 		var subItems []SubTask
 
-		err := row.Scan(&item.ID, &item.Title, &item.Description, &item.UpdatedAt, &item.CreatedAt)
+		err := row.Scan(&item.ID, &item.Title, &item.Description, &item.Done, &item.UpdatedAt, &item.CreatedAt)
 
 		if err != nil {
 			return nil, err
@@ -194,7 +194,17 @@ func (data *DataRepository) AddSubTask(taskId int64, title string) (*Task, error
 
 }
 
-func (data *DataRepository) UpdateSubTask(subTaskId int64) {}
+func (data *DataRepository) UpdateSubTask(subTask SubTask) error {
+
+	query := `UPDATE subtasks SET TaskID = ?,title = ?,done = ?,updated_at = ? WHERE id = ?`
+
+	updated_at := time.Now()
+
+	_, err := data.DB.Exec(query, &subTask.TaskID, &subTask.Title, &subTask.Done, updated_at, subTask.ID)
+
+	return err
+
+}
 
 func (data *DataRepository) DeleteSubTask(id int64) error {
 
