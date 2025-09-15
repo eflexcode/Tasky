@@ -33,13 +33,13 @@ func NewDataRepository(DB *sql.DB) *DataRepository {
 	return &DataRepository{DB: DB}
 }
 
-func (data *DataRepository) InsertTask(task *Task) error {
+func (data *DataRepository) InsertTask(title string,description string) error {
 
 	query := `INSERT INTO tasks(title,description,done,created_at,updated_at) VALUES($1,$2,$3,$4,$5)`
 
 	createdAt := time.Now()
 
-	_, err := data.DB.Exec(query, &task.Title, &task.Description, false, createdAt, createdAt)
+	_, err := data.DB.Exec(query, title ,description, false, createdAt, createdAt)
 
 	if err != nil {
 		return err

@@ -1,18 +1,23 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"strings"
 )
 
 func main() {
 
 	var taskyValue string = "help"
+	var addValue string = "help"
 
-	flag.StringVar(&taskyValue, "tasky", "help", "command -tasky help for info")
+	flag.StringVar(&taskyValue, "tasky", "", "command -tasky help for info")
+	flag.StringVar(&addValue, "add", "", "test commcnd")
 
 	flag.Parse()
 
+	// fmt.Print(addValue)
 	switch {
 
 	case taskyValue == "help":
@@ -27,7 +32,21 @@ func main() {
 		fmt.Println("subTask delete:", "delete subtask by id")
 		fmt.Println("subTask update:", "update task by id")
 
-	case taskyValue == "add":
+	case addValue != "add":
+
+		valueKeyMap, err := ParseKeyValue(addValue)
+
+		if err != nil {
+			title := valueKeyMap["title"]
+			description := valueKeyMap["description"]
+
+			if title == "" || description == "" {
+				fmt.Println("key title or description is missing")
+			}
+		} else {
+			fmt.Println(err)
+		}
+
 	case taskyValue == "update":
 	case taskyValue == "delete":
 	case taskyValue == "list":
@@ -38,9 +57,38 @@ func main() {
 	case taskyValue == "subTask update":
 
 	}
-
 }
 
-func f(p *string) {
+func ParseKeyValue(input string) (map[string]string, error) {
 
+	result := make(map[string]string)
+
+	splitKeyValues := strings.Split(input, ";")
+
+	for _, keyValue := range splitKeyValues {
+
+		isKeyValueEmpty := strings.TrimSpace(keyValue)
+
+		if isKeyValueEmpty == "" {
+			continue
+		}
+
+		keyAndValue := strings.SplitN(keyValue, "=", 2)
+
+		if len(keyAndValue) != 2 {
+			return nil, errors.New("invalid key and value pair")
+		}
+
+		key := keyAndValue[0]
+		value := keyAndValue[1]
+
+		if key == "" {
+			return nil, errors.New("invalid key is empty")
+		}
+
+		result[key] = value
+
+	}
+
+	return result, nil
 }
