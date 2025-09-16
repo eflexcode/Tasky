@@ -1,10 +1,14 @@
 package main
 
 import (
+	"cmd/data"
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
 	"strings"
+
+	"github.com/mattn/go-sqlite3"
 )
 
 func main() {
@@ -18,6 +22,20 @@ func main() {
 	flag.Parse()
 
 	// fmt.Print(addValue)
+
+	db, err := sql.Open("sqlite3", "./tasky.db")
+
+	defer db.Close()
+
+	if err != nil {
+		fmt.Println("Error", "Failed to load/connect sqlite db")
+		return
+	}
+
+	dataRepo := data.DataRepository{
+		DB: db,
+	}
+
 	switch {
 
 	case taskyValue == "help":
@@ -37,15 +55,18 @@ func main() {
 		valueKeyMap, err := ParseKeyValue(addValue)
 
 		if err != nil {
-			title := valueKeyMap["title"]
-			description := valueKeyMap["description"]
-
-			if title == "" || description == "" {
-				fmt.Println("key title or description is missing")
-			}
-		} else {
 			fmt.Println(err)
+			return
 		}
+
+		title := valueKeyMap["title"]
+		description := valueKeyMap["description"]
+
+		if title == "" || description == "" {
+			fmt.Println("key title or description is missing")
+		}
+
+		dataRepo.InsertTask(title,description)
 
 	case taskyValue == "update":
 	case taskyValue == "delete":
