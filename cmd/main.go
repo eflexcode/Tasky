@@ -7,21 +7,9 @@ import (
 	"flag"
 	"fmt"
 	"strings"
-
-	"github.com/mattn/go-sqlite3"
 )
 
 func main() {
-
-	var taskyValue string = "help"
-	var addValue string = "help"
-
-	flag.StringVar(&taskyValue, "tasky", "", "command -tasky help for info")
-	flag.StringVar(&addValue, "add", "", "test commcnd")
-
-	flag.Parse()
-
-	// fmt.Print(addValue)
 
 	db, err := sql.Open("sqlite3", "./tasky.db")
 
@@ -32,13 +20,42 @@ func main() {
 		return
 	}
 
+	query := `CREATE TABLE IF NOT EXISTs tasks(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT,description TEXT,done BOOLEAN ,created_at DATETIME ,updated_at DATETIME )`
+
+	_, err = db.Exec(query)
+
+	if err != nil {
+		fmt.Println("Error", "Failed to load/connect sqlite db table")
+		return
+	}
+
+	querySub := `CREATE TABLE IF NOT EXISTs subtasks(id INTEGER PRIMARY KEY AUTOINCREMENT, TaskID INTEGER, title TEXT,description TEXT,done BOOLEAN ,created_at DATETIME ,updated_at DATETIME )`
+
+	_, err = db.Exec(querySub)
+
+	if err != nil {
+		fmt.Println("Error", "Failed to load/connect sqlite db table")
+		return
+	}
+
 	dataRepo := data.DataRepository{
 		DB: db,
 	}
 
+	var taskyValue bool
+	var addValue string = "add"
+	var listValue bool = false
+
+	flag.BoolVar(&taskyValue, "help", false, "command -tasky help for info")
+	flag.StringVar(&addValue, "add", "add", "create new task")
+	flag.BoolVar(&listValue, "list", false, "show all task and subtask")
+	flag.String("ok", "skks", "ksksk")
+
+	flag.Parse()
+
 	switch {
 
-	case taskyValue == "help":
+	case taskyValue:
 
 		fmt.Println("help:", "prints out all commands and their use case")
 		fmt.Println("add:", "create new task")
@@ -51,7 +68,6 @@ func main() {
 		fmt.Println("subTask update:", "update task by id")
 
 	case addValue != "add":
-
 		valueKeyMap, err := ParseKeyValue(addValue)
 
 		if err != nil {
@@ -64,18 +80,34 @@ func main() {
 
 		if title == "" || description == "" {
 			fmt.Println("key title or description is missing")
+			return
 		}
 
-		dataRepo.InsertTask(title,description)
+		err = dataRepo.InsertTask(title, description)
 
-	case taskyValue == "update":
-	case taskyValue == "delete":
-	case taskyValue == "list":
-	case taskyValue == "get":
-	case taskyValue == "subTask add":
-	case taskyValue == "subTask get":
-	case taskyValue == "subTask delete":
-	case taskyValue == "subTask update":
+		if err != nil {
+			fmt.Println("Error", "error while trying to isert to db")
+		} else {
+			fmt.Println("Success", "Task with title "+title+" and description "+description+" added")
+		}
+
+	// case taskyValue == "update":
+	// case taskyValue == "delete":
+	case listValue:
+
+		tasks,err := dataRepo.GetAllTask()
+
+		if err != nil {
+			fmt.Print("Error","Failed to load task from db")
+		}
+
+		
+
+	// case taskyValue == "get":
+	// case taskyValue == "subTask add":
+	// case taskyValue == "subTask get":
+	// case taskyValue == "subTask delete":
+	// case taskyValue == "subTask update":
 
 	}
 }
