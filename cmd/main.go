@@ -6,7 +6,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
+	"text/tabwriter"
 )
 
 func main() {
@@ -29,7 +32,7 @@ func main() {
 		return
 	}
 
-	querySub := `CREATE TABLE IF NOT EXISTs subtasks(id INTEGER PRIMARY KEY AUTOINCREMENT, TaskID INTEGER, title TEXT,description TEXT,done BOOLEAN ,created_at DATETIME ,updated_at DATETIME )`
+	querySub := `CREATE TABLE IF NOT EXISTs subtasks(id INTEGER PRIMARY KEY AUTOINCREMENT, TaskID INTEGER, title TEXT,description TEXT,done BOOLEAN ,created_at DATETIME ,updated_at DATETIME,FOREIGN KEY (TaskID) REFERENCES tasks(id) ON DELETE CASCADE )`
 
 	_, err = db.Exec(querySub)
 
@@ -45,10 +48,14 @@ func main() {
 	var taskyValue bool
 	var addValue string = "add"
 	var listValue bool = false
+	var deleteValue int = -8
+	var getValue int = -1
 
 	flag.BoolVar(&taskyValue, "help", false, "command -tasky help for info")
 	flag.StringVar(&addValue, "add", "add", "create new task")
 	flag.BoolVar(&listValue, "list", false, "show all task and subtask")
+	flag.IntVar(&deleteValue, "delete", -8, "delete with id")
+	flag.IntVar(&getValue, "get", -1, "get with id")
 	flag.String("ok", "skks", "ksksk")
 
 	flag.Parse()
@@ -57,8 +64,8 @@ func main() {
 
 	case taskyValue:
 
-		fmt.Println("help:", "prints out all commands and their use case")
-		fmt.Println("add:", "create new task")
+		fmt.Println("-help:", "prints out all commands and their use case")
+		fmt.Println("-add:", "create new task")
 		fmt.Println("delete:", "delete existing task with all sub tasks")
 		fmt.Println("list:", "get all task with all sub tasks")
 		fmt.Println("get:", "get task by id")
@@ -92,22 +99,100 @@ func main() {
 		}
 
 	// case taskyValue == "update":
-	// case taskyValue == "delete":
-	case listValue:
+	case deleteValue != -8:
 
-		tasks,err := dataRepo.GetAllTask()
-
+		err := dataRepo.DeleteTask(int64(deleteValue))
 		if err != nil {
-			fmt.Print("Error","Failed to load task from db")
+			fmt.Println("Error", "Failed to delete task")
+			return
 		}
 
-		
+		fmt.Println("Success", "Task with id: "+strconv.Itoa(deleteValue)+" deleted succesfullly")
 
-	// case taskyValue == "get":
-	// case taskyValue == "subTask add":
-	// case taskyValue == "subTask get":
-	// case taskyValue == "subTask delete":
-	// case taskyValue == "subTask update":
+	case listValue:
+
+		tasks, err := dataRepo.GetAllTask()
+
+		if err != nil {
+			fmt.Print("Error", "Failed to load task from db")
+		}
+
+		w := new(tabwriter.Writer)
+		w.Init(os.Stdout, 0, 0, 2, '*', tabwriter.Debug|tabwriter.AlignRight)
+		fmt.Fprintln(w, "ID\tTitle\tDescription\tSubTasks\tDone\tCreatedAt\tUpdatedAt\t")
+
+		for _, t := range tasks {
+
+			var doneS string
+
+			if t.Done {
+				doneS = "YES"
+			} else {
+				doneS = "NO"
+			}
+
+			var subTaskDoneCount int
+
+			for _, d := range t.SubTasks {
+
+				if d.Done {
+					subTaskDoneCount++
+				}
+
+			}
+
+			subTaskInfo := "T: " + strconv.Itoa(len(t.SubTasks)) + " D: " + strconv.Itoa(subTaskDoneCount)
+
+			tString := strconv.Itoa(t.ID) + "\t" + t.Title + "\t" + t.Description + "\t" + subTaskInfo + "\t" + doneS + "\t" + t.CreatedAt.Format("02/01/2006 15:04:05") + "\t" + t.UpdatedAt.Format("02/01/2006 15:04:05") + "\t"
+
+			fmt.Fprintln(w, tString)
+
+		}
+
+		fmt.Fprintln(w)
+		w.Flush()
+		
+	case getValue != -1:
+
+		t, err := dataRepo.GetTaskById(int64(getValue))
+
+		if err != nil {
+			fmt.Println("Error", "Failed to delete task")
+			return
+		}
+
+		w := new(tabwriter.Writer)
+		w.Init(os.Stdout, 0, 0, 2, '*', tabwriter.Debug|tabwriter.AlignRight)
+		fmt.Fprintln(w, "ID\tTitle\tDescription\tSubTasks\tDone\tCreatedAt\tUpdatedAt\t")
+		var doneS string
+
+		if t.Done {
+			doneS = "YES"
+		} else {
+			doneS = "NO"
+		}
+
+		var subTaskDoneCount int
+
+		for _, d := range t.SubTasks {
+
+			if d.Done {
+				subTaskDoneCount++
+			}
+
+		}
+
+		subTaskInfo := "T: " + strconv.Itoa(len(t.SubTasks)) + " D: " + strconv.Itoa(subTaskDoneCount)
+
+		tString := strconv.Itoa(t.ID) + "\t" + t.Title + "\t" + t.Description + "\t" + subTaskInfo + "\t" + doneS + "\t" + t.CreatedAt.Format("02/01/2006 15:04:05") + "\t" + t.UpdatedAt.Format("02/01/2006 15:04:05") + "\t"
+
+		fmt.Fprintln(w, tString)
+		fmt.Fprintln(w)
+		w.Flush()
+		// case taskyValue == "subTask add":
+		// case taskyValue == "subTask get":
+		// case taskyValue == "subTask delete":
+		// case taskyValue == "subTask update":
 
 	}
 }
