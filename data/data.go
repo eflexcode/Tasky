@@ -49,11 +49,26 @@ func (data *DataRepository) InsertTask(title string,description string) error {
 
 func (data *DataRepository) UpdateTask(task *Task) error {
 
-	query := `UPDATE tasks SET title = ?,description = ?, done = ?,updated_at = ? WHERE id = ?`
+	query := `UPDATE tasks SET title = ?,description = ?,updated_at = ? WHERE id = ?`
 
 	updatedAt := time.Now()
 
-	_, err := data.DB.Exec(query, &task.Title, &task.Description, &task.Done, updatedAt, &task.ID)
+	_, err := data.DB.Exec(query, &task.Title, &task.Description, updatedAt, &task.ID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (data *DataRepository) ToggleTask(toggle bool,id int64) error {
+
+	query := `UPDATE tasks SET done = ?,updated_at = ? WHERE id = ?`
+
+	updatedAt := time.Now()
+
+	_, err := data.DB.Exec(query, toggle, updatedAt,id)
 
 	if err != nil {
 		return err
@@ -125,7 +140,9 @@ func (data *DataRepository) GetTaskById(id int64) (*Task, error) {
 
 	task := Task{}
 
-	err = result.Scan(&task.ID, &task.Title, &task.Description, &task.UpdatedAt, &task.CreatedAt)
+	result.Next()
+
+	err = result.Scan(&task.ID, &task.Title, &task.Description,&task.Done, &task.UpdatedAt, &task.CreatedAt)
 
 	if err != nil {
 		return nil, err

@@ -50,12 +50,16 @@ func main() {
 	var listValue bool = false
 	var deleteValue int = -8
 	var getValue int = -1
+	var toggleValue string = "toggle"
+	var updateValue string = "update"
 
 	flag.BoolVar(&taskyValue, "help", false, "command -tasky help for info")
 	flag.StringVar(&addValue, "add", "add", "create new task")
 	flag.BoolVar(&listValue, "list", false, "show all task and subtask")
 	flag.IntVar(&deleteValue, "delete", -8, "delete with id")
 	flag.IntVar(&getValue, "get", -1, "get with id")
+	flag.StringVar(&toggleValue, "toggle", "toggle", "toggle if task is done")
+	flag.StringVar(&updateValue, "update", "update", "update task title and description with id")
 	flag.String("ok", "skks", "ksksk")
 
 	flag.Parse()
@@ -98,9 +102,49 @@ func main() {
 			fmt.Println("Success", "Task with title "+title+" and description "+description+" added")
 		}
 
-	// case taskyValue == "update":
-	case deleteValue != -8:
+	case updateValue == "update":
 
+		valueKeyMap, err := ParseKeyValue(addValue)
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		id := valueKeyMap["id"]
+		title := valueKeyMap["title"]
+		description := valueKeyMap["description"]
+
+		idInt, err := strconv.Atoi(id)
+
+		if err != nil {
+			fmt.Println("Error", "Id is not a number")
+			return
+		}
+
+		t, err := dataRepo.GetTaskById(int64(idInt))
+
+		if err != nil {
+			fmt.Println("Error", "No task found with id "+id)
+		}
+
+		if title != "" {
+			t.Title = title
+		}
+
+		if description != "" {
+			t.Description = description
+		}
+
+		err = dataRepo.UpdateTask(t)
+
+		if err != nil {
+			fmt.Println("Error", "No task found with id "+id)
+		}
+
+		fmt.Println("Success", "Task updated succesfully")
+
+	case deleteValue != -8:
 		err := dataRepo.DeleteTask(int64(deleteValue))
 		if err != nil {
 			fmt.Println("Error", "Failed to delete task")
@@ -151,13 +195,14 @@ func main() {
 
 		fmt.Fprintln(w)
 		w.Flush()
-		
+
 	case getValue != -1:
 
 		t, err := dataRepo.GetTaskById(int64(getValue))
 
 		if err != nil {
-			fmt.Println("Error", "Failed to delete task")
+			fmt.Println(err)
+			fmt.Println("Error", "Failed to get task with id "+strconv.Itoa(getValue))
 			return
 		}
 
@@ -189,6 +234,45 @@ func main() {
 		fmt.Fprintln(w, tString)
 		fmt.Fprintln(w)
 		w.Flush()
+	case toggleValue != "":
+
+		valueKeyMap, err := ParseKeyValue(toggleValue)
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		done := valueKeyMap["done"]
+		id := valueKeyMap["id"]
+
+		if done == "" {
+			fmt.Println("Error", "key done or id is missing")
+			return
+		}
+
+		var isDone bool
+
+		if strings.EqualFold(done, "Yes") {
+			isDone = true
+		} else {
+			isDone = false
+		}
+
+		v, err := strconv.Atoi(id)
+
+		if err != nil {
+			fmt.Println("Error", "id is not a number")
+			return
+		}
+
+		err = dataRepo.ToggleTask(isDone, int64(v))
+
+		if err != nil {
+			fmt.Println("Error", "Faild to update task")
+			return
+		}
+		fmt.Println("Success", "Task updated succesfully")
 		// case taskyValue == "subTask add":
 		// case taskyValue == "subTask get":
 		// case taskyValue == "subTask delete":
