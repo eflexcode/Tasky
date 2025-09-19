@@ -2,15 +2,17 @@ package data
 
 import (
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
+	"fmt"
 	"time"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Task struct {
 	ID          int
 	Title       string
 	Description string
-	SubTasks    []SubTask
+	// SubTasks    []SubTask
 	Done        bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -47,13 +49,16 @@ func (data *DataRepository) InsertTask(title string,description string) error {
 	return nil
 }
 
-func (data *DataRepository) UpdateTask(task *Task) error {
+func (data *DataRepository) UpdateTask(title,description string,id int64) error {
+
+
+	fmt.Println("title: "+title+" description: "+description)
 
 	query := `UPDATE tasks SET title = ?,description = ?,updated_at = ? WHERE id = ?`
 
 	updatedAt := time.Now()
 
-	_, err := data.DB.Exec(query, &task.Title, &task.Description, updatedAt, &task.ID)
+	_, err := data.DB.Exec(query, title, description, updatedAt, id)
 
 	if err != nil {
 		return err
@@ -94,7 +99,7 @@ func (data *DataRepository) GetAllTask() ([]Task, error) {
 	for row.Next() {
 
 		item := Task{}
-		var subItems []SubTask
+		// var subItems []SubTask
 
 		err := row.Scan(&item.ID, &item.Title, &item.Description, &item.Done, &item.UpdatedAt, &item.CreatedAt)
 
@@ -102,25 +107,25 @@ func (data *DataRepository) GetAllTask() ([]Task, error) {
 			return nil, err
 		}
 
-		querySubTask := `SELECT * FROM subtasks WHERE TaskID = ?`
+		// querySubTask := `SELECT * FROM subtasks WHERE TaskID = ?`
 
-		rowSubTask, err := data.DB.Query(querySubTask, item.ID)
+		// rowSubTask, err := data.DB.Query(querySubTask, item.ID)
 
-		if err != nil {
-			return nil, err
-		}
+		// if err != nil {
+		// 	return nil, err
+		// }
 
-		for rowSubTask.Next() {
-			subItem := SubTask{}
-			err = rowSubTask.Scan(&subItem.ID, &subItem.TaskID, &subItem.Title, &subItem.Done, &subItem.CreatedAt, &subItem.UpdatedAt)
+		// for rowSubTask.Next() {
+			// subItem := SubTask{}
+			// err = rowSubTask.Scan(&subItem.ID, &subItem.TaskID, &subItem.Title, &subItem.Done, &subItem.CreatedAt, &subItem.UpdatedAt)
 
-			if err != nil {
-				return nil, err
-			}
+			// if err != nil {
+			// 	return nil, err
+			// }
 
-			subItems = append(subItems, subItem)
-			item.SubTasks = subItems
-		}
+			// subItems = append(subItems, subItem)
+			// item.SubTasks = subItems
+		// }
 
 		tasks = append(tasks, item)
 	}
@@ -148,31 +153,31 @@ func (data *DataRepository) GetTaskById(id int64) (*Task, error) {
 		return nil, err
 	}
 
-	querySubTask := `SELECT * FROM subtasks WHERE TaskID = ?`
+	// querySubTask := `SELECT * FROM subtasks WHERE TaskID = ?`
 
-	rowSubTask, err := data.DB.Query(querySubTask, id)
+	// rowSubTask, err := data.DB.Query(querySubTask, id)
 
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	var subTasks []SubTask
+	// var subTasks []SubTask
 
-	for rowSubTask.Next() {
+	// for rowSubTask.Next() {
 
-		subTask := SubTask{}
+	// 	subTask := SubTask{}
 
-		err = rowSubTask.Scan(&subTask.ID, &subTask.TaskID, &subTask.Title, &subTask.Done, &subTask.CreatedAt, &subTask.UpdatedAt)
+	// 	err = rowSubTask.Scan(&subTask.ID, &subTask.TaskID, &subTask.Title, &subTask.Done, &subTask.CreatedAt, &subTask.UpdatedAt)
 
-		if err != nil {
-			return nil, err
-		}
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
 
-		subTasks = append(subTasks, subTask)
+	// 	subTasks = append(subTasks, subTask)
 
-	}
+	// }
 
-	task.SubTasks = subTasks
+	// task.SubTasks = subTasks
 
 	return &task, nil
 

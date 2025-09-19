@@ -14,7 +14,7 @@ import (
 
 func main() {
 
-	db, err := sql.Open("sqlite3", "./tasky.db")
+	db, err := sql.Open("sqlite3", "./tasky.db?_busy_timeout=10000&_journal_mode=WAL")
 
 	defer db.Close()
 
@@ -60,7 +60,6 @@ func main() {
 	flag.IntVar(&getValue, "get", -1, "get with id")
 	flag.StringVar(&toggleValue, "toggle", "toggle", "toggle if task is done")
 	flag.StringVar(&updateValue, "update", "update", "update task title and description with id")
-	flag.String("ok", "skks", "ksksk")
 
 	flag.Parse()
 
@@ -68,15 +67,19 @@ func main() {
 
 	case taskyValue:
 
-		fmt.Println("-help:", "prints out all commands and their use case")
-		fmt.Println("-add:", "create new task")
-		fmt.Println("delete:", "delete existing task with all sub tasks")
-		fmt.Println("list:", "get all task with all sub tasks")
-		fmt.Println("get:", "get task by id")
-		fmt.Println("subTask add:", "create subtask by task id")
-		fmt.Println("subTask get:", "get subtask by id")
-		fmt.Println("subTask delete:", "delete subtask by id")
-		fmt.Println("subTask update:", "update task by id")
+		fmt.Println("Syntax(put in double quote):", "id=1;done=yes\n")
+
+		fmt.Println("-help:", "prints out all commands and their use case\n")
+		fmt.Println("-add:", "create new task(title and description)\n")
+		fmt.Println("-delete:", "delete existing task with all sub tasks\n")
+		fmt.Println("-list:", "get all task with all sub tasks\n")
+		fmt.Println("-update:", "update task by id\n")
+		fmt.Println("-toggle:", "update task done by id\n")
+		fmt.Println("-get:", "get task by id\n")
+		// fmt.Println("subTask add:", "create subtask by task id")
+		// fmt.Println("subTask get:", "get subtask by id")
+		// fmt.Println("subTask delete:", "delete subtask by id")
+		// fmt.Println("subTask update:", "update task by id")
 
 	case addValue != "add":
 		valueKeyMap, err := ParseKeyValue(addValue)
@@ -102,9 +105,9 @@ func main() {
 			fmt.Println("Success", "Task with title "+title+" and description "+description+" added")
 		}
 
-	case updateValue == "update":
+	case updateValue != "update":
 
-		valueKeyMap, err := ParseKeyValue(addValue)
+		valueKeyMap, err := ParseKeyValue(updateValue)
 
 		if err != nil {
 			fmt.Println(err)
@@ -126,6 +129,7 @@ func main() {
 
 		if err != nil {
 			fmt.Println("Error", "No task found with id "+id)
+			return
 		}
 
 		if title != "" {
@@ -136,10 +140,14 @@ func main() {
 			t.Description = description
 		}
 
-		err = dataRepo.UpdateTask(t)
+		fmt.Println(t.Title + " " + t.Description)
+
+		err = dataRepo.UpdateTask(t.Title,t.Description,int64(idInt))
 
 		if err != nil {
-			fmt.Println("Error", "No task found with id "+id)
+			fmt.Println(err)
+			fmt.Println("Error", "Failed to update task "+id)
+			return
 		}
 
 		fmt.Println("Success", "Task updated succesfully")
@@ -163,7 +171,7 @@ func main() {
 
 		w := new(tabwriter.Writer)
 		w.Init(os.Stdout, 0, 0, 2, '*', tabwriter.Debug|tabwriter.AlignRight)
-		fmt.Fprintln(w, "ID\tTitle\tDescription\tSubTasks\tDone\tCreatedAt\tUpdatedAt\t")
+		fmt.Fprintln(w, "ID\tTitle\tDescription\tDone\tCreatedAt\tUpdatedAt\t")
 
 		for _, t := range tasks {
 
@@ -175,19 +183,19 @@ func main() {
 				doneS = "NO"
 			}
 
-			var subTaskDoneCount int
+			// var subTaskDoneCount int
 
-			for _, d := range t.SubTasks {
+			// for _, d := range t.SubTasks {
 
-				if d.Done {
-					subTaskDoneCount++
-				}
+			// 	if d.Done {
+			// 		subTaskDoneCount++
+			// 	}
 
-			}
+			// }
 
-			subTaskInfo := "T: " + strconv.Itoa(len(t.SubTasks)) + " D: " + strconv.Itoa(subTaskDoneCount)
+			// subTaskInfo := "T: " + strconv.Itoa(len(t.SubTasks)) + " D: " + strconv.Itoa(subTaskDoneCount)
 
-			tString := strconv.Itoa(t.ID) + "\t" + t.Title + "\t" + t.Description + "\t" + subTaskInfo + "\t" + doneS + "\t" + t.CreatedAt.Format("02/01/2006 15:04:05") + "\t" + t.UpdatedAt.Format("02/01/2006 15:04:05") + "\t"
+			tString := strconv.Itoa(t.ID) + "\t" + t.Title + "\t" + t.Description +  "\t" + doneS + "\t" + t.CreatedAt.Format("02/01/2006 15:04:05") + "\t" + t.UpdatedAt.Format("02/01/2006 15:04:05") + "\t"
 
 			fmt.Fprintln(w, tString)
 
@@ -201,14 +209,13 @@ func main() {
 		t, err := dataRepo.GetTaskById(int64(getValue))
 
 		if err != nil {
-			fmt.Println(err)
 			fmt.Println("Error", "Failed to get task with id "+strconv.Itoa(getValue))
 			return
 		}
 
 		w := new(tabwriter.Writer)
 		w.Init(os.Stdout, 0, 0, 2, '*', tabwriter.Debug|tabwriter.AlignRight)
-		fmt.Fprintln(w, "ID\tTitle\tDescription\tSubTasks\tDone\tCreatedAt\tUpdatedAt\t")
+		fmt.Fprintln(w, "ID\tTitle\tDescription\tDone\tCreatedAt\tUpdatedAt\t")
 		var doneS string
 
 		if t.Done {
@@ -217,24 +224,24 @@ func main() {
 			doneS = "NO"
 		}
 
-		var subTaskDoneCount int
+		// var subTaskDoneCount int
 
-		for _, d := range t.SubTasks {
+		// for _, d := range t.SubTasks {
 
-			if d.Done {
-				subTaskDoneCount++
-			}
+		// 	if d.Done {
+		// 		subTaskDoneCount++
+		// 	}
 
-		}
+		// }
 
-		subTaskInfo := "T: " + strconv.Itoa(len(t.SubTasks)) + " D: " + strconv.Itoa(subTaskDoneCount)
+		// subTaskInfo := "T: " + strconv.Itoa(len(t.SubTasks)) + " D: " + strconv.Itoa(subTaskDoneCount)
 
-		tString := strconv.Itoa(t.ID) + "\t" + t.Title + "\t" + t.Description + "\t" + subTaskInfo + "\t" + doneS + "\t" + t.CreatedAt.Format("02/01/2006 15:04:05") + "\t" + t.UpdatedAt.Format("02/01/2006 15:04:05") + "\t"
+		tString := strconv.Itoa(t.ID) + "\t" + t.Title + "\t" + t.Description  + "\t" + doneS + "\t" + t.CreatedAt.Format("02/01/2006 15:04:05") + "\t" + t.UpdatedAt.Format("02/01/2006 15:04:05") + "\t"
 
 		fmt.Fprintln(w, tString)
 		fmt.Fprintln(w)
 		w.Flush()
-	case toggleValue != "":
+	case toggleValue != "toggle":
 
 		valueKeyMap, err := ParseKeyValue(toggleValue)
 
@@ -273,12 +280,9 @@ func main() {
 			return
 		}
 		fmt.Println("Success", "Task updated succesfully")
-		// case taskyValue == "subTask add":
-		// case taskyValue == "subTask get":
-		// case taskyValue == "subTask delete":
-		// case taskyValue == "subTask update":
 
 	}
+
 }
 
 func ParseKeyValue(input string) (map[string]string, error) {
@@ -296,7 +300,6 @@ func ParseKeyValue(input string) (map[string]string, error) {
 		}
 
 		keyAndValue := strings.SplitN(keyValue, "=", 2)
-
 		if len(keyAndValue) != 2 {
 			return nil, errors.New("invalid key and value pair")
 		}
