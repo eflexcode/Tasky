@@ -41,9 +41,7 @@ func main() {
 		return
 	}
 
-	dataRepo := data.DataRepository{
-		DB: db,
-	}
+	dataRepo := data.NewDataRepository(db)
 
 	var taskyValue bool
 	var addValue string = "add"
