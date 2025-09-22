@@ -2,7 +2,6 @@ package data
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -50,9 +49,6 @@ func (data *DataRepository) InsertTask(title string,description string) error {
 }
 
 func (data *DataRepository) UpdateTask(title,description string,id int64) error {
-
-
-	fmt.Println("title: "+title+" description: "+description)
 
 	query := `UPDATE tasks SET title = ?,description = ?,updated_at = ? WHERE id = ?`
 
